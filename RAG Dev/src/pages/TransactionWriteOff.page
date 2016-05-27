@@ -1,0 +1,11 @@
+<apex:page standardController="c2g__codaTransactionLineItem__c" extensions="ffirule.IntegrationRuleEngine,WriteOffValidationController"  recordSetVar="records">
+<apex:pageBlock >
+<apex:form >
+Writing off {!pass} txs of {!total} from company {!company0387.Name}
+<br/><br/>
+<apex:commandbutton action="{!convert}" value="Continue?" />
+</apex:form>
+</apex:pageBlock>
+<ffirule:IntegrationRule engine="{!engine}" />
+
+</apex:page>

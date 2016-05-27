@@ -1,0 +1,656 @@
+<apex:page standardController="WipReport__c" extensions="WipReportController" standardStylesheets="false">
+
+    <apex:variable var="styleLineColor"                         value="#000000" />
+    <head>
+        <style type="text/css">
+            .rightAlign { text-align : right;}
+           
+            .boxed 
+            {
+                width:680px; 
+                border-top:1px solid {!styleLineColor};
+                border-left:1px solid {!styleLineColor};
+                border-right:1px solid {!styleLineColor};
+                border-bottom:1px solid {!styleLineColor};
+            }
+            .boxed th
+            {
+                text-align: right;
+                -moz-column-gap:10px; /* Firefox */
+                -webkit-column-gap:10px; /* Safari and Chrome */
+                column-gap:10px;
+            }
+            
+            .tdTitle{ 
+                text-align : left;
+                min-width: 250px;
+            }
+            .tdRight{ 
+                text-align: right;
+                min-width: 100px;
+            }
+        </style>
+        
+    
+        <apex:variable var="lbl_common_hdr_glRef"           value="GL Ref" />
+        <apex:variable var="lbl_common_hdr_intCost"         value="Internal Cost" />
+        <apex:variable var="lbl_common_hdr_calcChrg"        value="Calculated Charge" />
+        <apex:variable var="lbl_common_hdr_calcCost"        value="Internal Cost" />
+
+        <apex:variable var="lbl_common_intLabCst"           value="Internal Labour Cost" />
+        <apex:variable var="lbl_common_intLabAuth"          value="Internal Labour (Authorised)" />
+        <apex:variable var="lbl_common_subLabCst"           value="Subcontractor Labour Cost" />
+        <apex:variable var="lbl_common_subExp"              value="Subcontractor Expenses" />
+        <apex:variable var="lbl_common_oopPrcChrg"          value="OOPE % charge applied" />
+        <apex:variable var="lbl_common_oopStdPrc"           value="(STD 7.5%)" />
+        <apex:variable var="lbl_common_adminPrcChrg"        value="Admin % charge applied" />
+        <apex:variable var="lbl_common_adminStdPrc"         value="(STD 5%)"/>
+        <apex:variable var="lbl_common_dbPrcChrg"           value="Database % charge applied" />
+        <apex:variable var="lbl_common_dbStdPrc"            Value="(STD 7.5%)" />
+        <apex:variable var="lbl_common_passThruCost"        value="Pass-through costs" />
+        <apex:variable var="lbl_common_expenses"            value="Expenses" />
+        <apex:variable var="lbl_common_subFee"              value="Subcontractor Fee" />
+        
+        <apex:variable var="lbl_common_subTtl"              value="Subtotal" />
+        <apex:variable var="lbl_common_total"               value="Total" />
+        
+        <!--  Budget Labels -->
+        <apex:variable var="lbl_budget_section"             value="Proposed Costs/Budget" />
+        <apex:variable var="lbl_budget_hdr_budgetCost"      value="Budget Cost" />
+        <apex:variable var="lbl_budget_hdr_budgetChrg"      value="Budget Calculated Charge" />
+        <apex:variable var="lbl_budget_totalCosts"          value="Total Budget Costs" />
+        <apex:variable var="lbl_budget_proFeeOppVal"        value="Professional Fees/Opportunity Value"/>
+        <apex:variable var="lbl_budget_totalFee"            value="Total fee"/>
+        <apex:variable var="lbl_budget_recRate"             value="Budgeted Recovery Rate"/>
+
+        <!--  Actuals Labels -->
+        <apex:variable var="lbl_actual_section"             value="WIP (Actual Costs)" />
+        <apex:variable var="lbl_actual_intLabNotAuth"       value="Internal Labour Sub not Authorised" />
+        
+        <!--  Billed Labels -->
+        <apex:variable var="lbl_billed_section"             value="Billed to date" />
+        <apex:variable var="lbl_billed_hdr_charges"         value="FF" />
+        <apex:variable var="lbl_billed_tAndM"               value="Time and Materials Professional Fee" />
+        <apex:variable var="lbl_billed_msProfFee"           value="Milestone Professional Fee (Fixed Fee)/Retainer" />
+        <apex:variable var="lbl_billed_msAdmin"             value="Milestone Admin" />
+        <apex:variable var="lbl_billed_mdDB"                value="Milestone Database" />
+        <apex:variable var="lbl_billed_miscAdjs"            value="Misc Adjustments" />
+        <apex:variable var="lbl_billed_expInvoice"          value="Expensed Invoiced" />
+        <apex:variable var="lbl_billed_defRev"              value="Deferred Rev. Retainer Release" />
+        <apex:variable var="lbl_billed_accrIncome"          value="Accrued income" />
+        
+        <!--  Costs To date Labels -->
+        <apex:variable var="lbl_costTD_section"             value="Project cost to date" />
+        <apex:variable var="lbl_costTD_subInvNotRecFees"    value="Acc. Subcontractor invoices not received (Fees)" />
+        <apex:variable var="lbl_costTD_subInvNotRecExps"    value="Acc. Subcontractor invoices not received (Expenses)"/>
+        <apex:variable var="lbl_costTD_PassThruNotRec"      value="Acc. Pass-through invoices not received"/>
+        
+        <!--  KPI Labels -->
+        <apex:variable var="lbl_KPI_section"                value="KPIs"/>
+        <apex:variable var="lbl_KPI_actCstOnBud"            value="Actual Costs on budget"/>
+        <apex:variable var="lbl_KPI_actRecRate"             value="Actual recovery rate"/>
+        <apex:variable var="lbl_KPI_grossProf"              value="Gross Profit %"/>
+        <apex:variable var="lbl_KPI_contrib"                value="Contribution"/>
+    </head>
+   <apex:pageMessages /> 
+   
+   <apex:outputLink value="{!URLFOR($Action.WipReport__c.List, $ObjectType.WipReport__c)}" rendered="true">
+      &lt;&lt; View WIP Reports List
+   </apex:outputLink>
+   <br/>
+   <apex:outputLink value="/{!wipReport.Project__c}" rendered="{!IF((WipReport__c.Project__c != null),true,false)}">
+       &lt;&lt; View Project
+   </apex:outputLink>
+   <p/> 
+
+   <!--  HIDDEN INCLUDE VARIABLES -->
+   <apex:outputText rendered="false">
+   	 {!WipReport__c.status__c}
+   	 {!WipReport__c.budgetAdminChargePercent__c}
+   	 {!WipReport__c.budgetCalcAdminCharge__c}
+   	 {!WipReport__c.budgetDbChargePercent__c}
+   	 {!WipReport__c.budgetCalcDbCharge__c}
+   	 {!WipReport__c.budgetExpenses__c}
+   	 {!WipReport__c.budgetCalcInternalLabourCharge__c}
+   	 {!WipReport__c.budgetInternalLabourCost__c}
+   	 {!WipReport__c.budgetOopeChargePercent__c}
+   	 {!WipReport__c.budgetCalcOopeCharge__c}
+   	 {!WipReport__c.budgetPassedThroughCost__c}
+   	 {!WipReport__c.budgetProfFees__c}
+   	 {!WipReport__c.budgetRecRate__c}
+   	 {!WipReport__c.budgetSubExpenses__c}
+   	 {!WipReport__c.budgetCalcSubLabourCharge__c}
+   	 {!WipReport__c.budgetSubLabourCost__c}
+   	 {!WipReport__c.budgetTotCharge__c}
+   	 {!WipReport__c.budgetTotCosts__c}
+   	 {!WipReport__c.budgetTotalFee__c}
+   	 {!WipReport__c.actualCalcAdminCharge__c}
+   	 {!WipReport__c.actualChargeSubTotal__c}
+   	 {!WipReport__c.actualChargeTotal__c}
+   	 {!WipReport__c.actualCostSubtotal__c}
+   	 {!WipReport__c.actualCostTotal__c}
+   	 {!WipReport__c.actualCalcDbCharge__c}
+   	 {!WipReport__c.actualCalcInternalLabourCharge__c}
+   	 {!WipReport__c.actualInternalLabourCost__c}
+   	 {!WipReport__c.actualCalcOopeCharge__c}
+   	 {!WipReport__c.actualPassedThroughCost__c}
+   	 {!WipReport__c.actualSubExpenses__c}
+   	 {!WipReport__c.actualCalcSubLabourCharge__c}
+   	 {!WipReport__c.actualSubLabourCost__c}
+   	 {!WipReport__c.actualUnathorisedLabourCharge__c}
+   	 {!WipReport__c.actualUnathorisedLabourCost__c}
+   	 {!WipReport__c.billedAccruedIncome__c}
+   	 {!WipReport__c.billedMileStoneAdminCharge__c}
+   	 {!WipReport__c.billedMilestoneDbCharge__c}
+   	 {!WipReport__c.billedExpenses__c}
+   	 {!WipReport__c.billedMiscAdjsCharge__c}
+   	 {!WipReport__c.billedPassedThroughCost__c}
+   	 {!WipReport__c.billedProfFeesCharge__c}
+   	 {!WipReport__c.billedMilestoneProfFeesCharge__c}
+   	 {!WipReport__c.billedTotal__c}
+   	 {!WipReport__c.billedDeferredRev__c}
+   	 {!WipReport__c.cost2DatePassthruNotRec__c}
+   	 {!WipReport__c.cost2DateSubFeeNotRec__c}
+   	 {!WipReport__c.cost2DateSubExpNotRec__c}
+   	 {!WipReport__c.cost2DateCalcAdminCharge__c}
+   	 {!WipReport__c.cost2DateCalcDbCharge__c}
+   	 {!WipReport__c.cost2DateCalcInternalLabourCharge__c}
+   	 {!WipReport__c.cost2DateInternalLabourCost__c}
+   	 {!WipReport__c.cost2DateCalcOopeCharge__c}
+   	 {!WipReport__c.cost2DatePassedThroughCost__c}
+   	 {!WipReport__c.cost2DateSubExpenses__c}
+   	 {!WipReport__c.cost2DateCalcSubLabourCharge__c}
+   	 {!WipReport__c.cost2DateSubLabourCost__c}
+   	 {!WipReport__c.cost2DateChargeTotal__c}
+   	 {!WipReport__c.cost2DateCostTotal__c}
+   	 {!WipReport__c.kpiGrossProfit__c}
+   	 {!WipReport__c.kpiActualCostsOnBudget__c}
+   	 {!WipReport__c.kpiActualRecRate__c}
+   	 {!WipReport__c.kpiContribution__c}
+   	 {!WipReport__c.Project__c}
+   	 {!WipReport__c.project__r}
+   	 {!WipReport__c.snapShotDate__c}
+   	 {!WipReport__c.Timestamp__c}	
+   	 {!WipReport__c.FilterType__c}	
+   </apex:outputText>
+
+    <!--  BUDGET SECTION -->
+     <apex:pageBlock title="WIP Report for project: {!WipReport__c.project__r.name} for transactions up to {!WipReport__c.snapShotDate__c}">
+         <apex:outputText >
+             Report generated : {!WipReport__c.Timestamp__c}
+         </apex:outputText>
+         <br/>
+         <br/>
+         <h3>
+         <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!wipReportGlList}" target="_blank" > 
+            View All transactions 
+         </a>
+         </h3>
+         <apex:outputText >
+             or view individual GL transactions by selecting relevant Reporting Code.
+         </apex:outputText>
+         <p/>
+		<apex:outputText rendered="true">All values given in Project currency: {!WipReport__c.Project__r.CurrencyIsoCode} </apex:outputText>
+         <apex:pageBlockSection title="{!lbl_budget_section}">
+            <table  class="boxed">
+                <thead>
+                    <tr>
+                        <th class="rightAlign"></th>
+                        <th class="tdRight"></th>
+                        <th class="tdRight">{!lbl_budget_hdr_budgetCost}</th>
+                        <th class="tdRight">{!lbl_budget_hdr_budgetChrg}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="tdTitle"> {!lbl_common_intLabCst}</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> {!WipReport__c.budgetInternalLabourCost__c} </td>
+                        <td class="tdRight"> {!wipReport__c.budgetCalcInternalLabourCharge__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_common_subFee}</td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!wipReport__c.budgetSubLabourCost__c}</td>
+                       <td class="tdRight"> {!wipReport__c.budgetCalcSubLabourCharge__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_common_subExp} </td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!wipReport__c.budgetSubExpenses__c}</td>
+                       <td class="tdRight"> {!wipReport__c.budgetSubExpenses__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle"> {!lbl_common_oopPrcChrg} {!lbl_common_oopStdPrc}</td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!ROUND(wipReport__c.budgetOopeChargePercent__c,1)}%</td>
+                       <td class="tdRight"> {!wipReport__c.budgetCalcOopeCharge__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle"> {!lbl_common_adminPrcChrg} {!lbl_common_adminStdPrc}  </td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!ROUND(wipReport__c.budgetAdminChargePercent__c,1)}%</td>
+                       <td class="tdRight"> {!wipReport__c.budgetCalcAdminCharge__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_common_dbPrcChrg} {!lbl_common_dbStdPrc} </td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!ROUND(wipReport__c.budgetDbChargePercent__c,1)}%</td>
+                       <td class="tdRight"> {!wipReport__c.budgetCalcDbCharge__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_common_passThruCost} </td>
+                       <td class="tdRight"> </td>
+                       <td class="tdRight"> {!wipReport__c.budgetPassedThroughCost__c}</td>
+                       <td class="tdRight"> {!wipReport__c.budgetPassedThroughCost__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">&nbsp;</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>                    
+                    </tr>
+                    <tr>
+                        <td class="tdTitle"><b>{!lbl_budget_totalCosts} </b></td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> <b>{!wipReport__c.budgetTotCosts__c}</b></td>
+                        <td class="tdRight"> <b>{!wipReport__c.budgetTotCharge__c}</b> </td>
+                    </tr>
+                     <tr>
+                        <td class="tdTitle">&nbsp;</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_budget_proFeeOppVal}</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> {!wipReport__c.budgetProfFees__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_common_expenses}</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> {!wipReport__c.budgetExpenses__c}</td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle"><b>{!lbl_budget_totalFee}</b></td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"><b>{!wipReport__C.budgetTotalFee__c}</b></td>
+                    </tr>
+                     <tr>
+                        <td class="tdTitle">&nbsp;</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                    </tr>
+                    <tr>
+                        <td class="tdTitle">{!lbl_budget_recRate}</td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight"> </td>
+                        <td class="tdRight">{! ROUND(wipReport__c.budgetRecRate__c, 1)}%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </apex:pageBlockSection>
+        
+        &nbsp;    
+          
+        <!--  ACTUALS SECTIONS -->   
+        <apex:pageBlockSection title="{!lbl_actual_section}">
+                <table  class="boxed">
+                <tr>
+                    <th></th>  
+                    <th>{!lbl_common_hdr_glRef}</th>
+                    <th>{!lbl_common_hdr_calcCost}</th> 
+                    <th>{!lbl_common_hdr_calcChrg}</th> 
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_intLabAuth}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.actualIntLabRepCode],15)}" target="_blank" > {!glSet.actualIntLabRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.actualInternalLabourCost__c} </td>
+                    <td class="tdRight"> {!wipReport__c.actualCalcInternalLabourCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_subFee}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.actualSubFeeRepCode],15)}" target="_blank" > {!glSet.actualSubFeeRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.actualSubLabourCost__c}</td>
+                    <td class="tdRight"> {!wipReport__c.actualCalcSubLabourCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_subExp} </td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.actualSubExpRepCode],15)}" target="_blank" > {!glSet.actualSubExpRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.actualSubExpenses__c} </td>
+                    <td class="tdRight"> {!wipReport__c.actualSubExpenses__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_oopPrcChrg}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!glSet.rptToGlMap[glSet.actualExpRepCode]}" target="_blank" > {!glSet.actualExpRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.actualCalcOopeCharge__c}</td>
+                    <td class="tdRight"> {!wipReport__c.actualCalcOopeCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_adminPrcChrg}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.actualCalcAdminCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_dbPrcChrg}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.actualCalcDbCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_passThruCost} </td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.actualPassThruRepCode],15)}" target="_blank" > {!glSet.actualPassThruRepCode}</a>
+                    </td>     
+                    <td class="tdRight">{!wipReport__c.actualPassedThroughCost__c} </td>
+                    <td class="tdRight">{!wipReport__c.actualPassedThroughCost__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"><b>{!lbl_common_subTtl} </b></td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> <b>{!wipReport__c.actualCostSubtotal__c}</b></td>
+                    <td class="tdRight"> <b>{!wipReport__c.actualChargeSubtotal__c}</b></td>
+                </tr>
+                 <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_actual_intLabNotAuth}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.actualUnathorisedLabourCost__c}</td>
+                    <td class="tdRight"> {!wipReport__c.actualUnathorisedLabourCharge__c}</td>
+                </tr>
+                 <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"><b>{!lbl_common_total}</b></td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"><b>{!wipreport__c.actualCostTotal__c}</b> </td>
+                    <td class="tdRight"><b>{!wipreport__c.actualChargeTotal__c}</b> </td>
+                </tr>
+            </table>
+        </apex:pageBlockSection>
+        
+        &nbsp;
+
+        <!--  BILLED SECTION -->
+        <apex:pageBlockSection title="{!lbl_billed_section}">
+         <table  class="boxed">
+                <tr>
+                    <th></th>
+                    <th>{!lbl_common_hdr_glRef}</th>
+                    <th></th>
+                    <th>{!lbl_billed_hdr_charges}</th>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_billed_tAndM}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedProfFeeRepCode],15)}" target="_blank" > {!glSet.billedProfFeeRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedProfFeesCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_billed_msProfFee}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedMsProfFeeRepCode],15)}" target="_blank" > {!glSet.billedMsProfFeeRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedMilestoneProfFeesCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_billed_msAdmin} </td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedMsAdminRepCode],15)}" target="_blank" > {!glSet.billedMsAdminRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedMileStoneAdminCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_billed_mdDB}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedMsDbRepCode],15)}" target="_blank" > {!glSet.billedMsDbRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedMilestoneDbCharge__c }</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_billed_miscAdjs}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedMiscAdjRepCode],15)}" target="_blank" > {!glSet.billedMiscAdjRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedMiscAdjsCharge__c }</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_billed_expInvoice}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedExpRepCode],15)}" target="_blank" > {!glSet.billedExpRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedExpenses__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{! lbl_common_passThruCost}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedPassThruRepCode],15)}" target="_blank" > {!glSet.billedPassThruRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedPassedThroughCost__c }</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"><b>{!lbl_common_total}</b> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"><b> {!wipreport__c.billedTotal__c}</b> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_billed_defRev}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedDeferRevRepCode],15)}" target="_blank" > {!glSet.billedDeferRevRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedDeferredRev__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_billed_accrIncome}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.billedAccrIncRepCode],15)}" target="_blank" > {!glSet.billedAccrIncRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.billedAccruedIncome__c}</td>
+                </tr>
+            </table>
+        </apex:pageBlockSection>
+      
+        &nbsp;      
+
+        <!-- COSTS TO DATE SECTIONS -->   
+        <apex:pageBlockSection title="{!lbl_costTD_section}">
+                <table  class="boxed">
+                <tr>
+                    <th></th>
+                    <th>{!lbl_common_hdr_glRef}</th>
+                    <th>{!lbl_common_hdr_calcCost}</th> 
+                    <th>{!lbl_common_hdr_calcChrg}</th> 
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_intLabAuth}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authIntLabRepCode],15)}" target="_blank" > {!glSet.authIntLabRepCode}</a>
+                    </td>     
+                    <td class="tdRight">{!wipReport__c.cost2DateInternalLabourCost__c} </td>
+                    <td class="tdRight">{!wipReport__c.cost2DateCalcInternalLabourCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_subFee}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authSubFeeRepCode],15)}" target="_blank" > {!glSet.authSubFeeRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.cost2DateSubLabourCost__c} </td>
+                    <td class="tdRight"> {!wipReport__c.cost2DateCalcSubLabourCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_subExp} </td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authSubExpRepCode],15)}" target="_blank" > {!glSet.authSubExpRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.cost2DateSubExpenses__c}</td>
+                    <td class="tdRight"> {!wipReport__c.cost2DateSubExpenses__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_oopPrcChrg}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!glSet.rptToGlMap[glSet.authExpRepCode]}" target="_blank" > {!glSet.authExpRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.cost2DateCalcOopeCharge__c}</td>
+                    <td class="tdRight"> {!wipReport__c.cost2DateCalcOopeCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_common_adminPrcChrg}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!wipReport__c.cost2DateCalcAdminCharge__c}</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_dbPrcChrg}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight">{!wipReport__c.cost2DateCalcDbCharge__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_common_passThruCost} </td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authPassThruRepCode],15)}" target="_blank" > {!glSet.authPassThruRepCode}</a>
+                    </td>     
+                    <td class="tdRight">{!wipReport__c.cost2DatePassedThroughCost__c} </td>
+                    <td class="tdRight">{!wipReport__c.cost2DatePassedThroughCost__c} </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"><b>{!lbl_common_total}</b></td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"><b> {!wipreport__c.cost2DateCostTotal__c }</b></td>
+                    <td class="tdRight"><b> {!wipreport__c.cost2DateChargeTotal__c }</b></td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_costTD_subInvNotRecFees}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authSubFeeInvNotRecRepCode],15)}" target="_blank" > {!glSet.authSubFeeInvNotRecRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.cost2DateSubFeeNotRec__c}</td>
+                    <td class="tdRight"> </td>
+                </tr>
+                 <tr>
+                    <td class="tdTitle">{!lbl_costTD_subInvNotRecExps}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authSubExpInvNotRecRepCode],15)}" target="_blank" > {!glSet.authSubExpInvNotRecRepCode}</a>
+                    </td>     
+                    <td class="tdRight"> {!wipReport__c.cost2DateSubExpNotRec__c}</td>
+                    <td class="tdRight"> </td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_costTD_PassThruNotRec}</td>
+                    <td class="tdRight">
+                        <a href="{!wipReportURL}?pv1='{!wipReportSnapshotDate}'&pv0='{!LEFT(wipReportDimId,15)}'&pv2={!LEFT(glSet.rptToGlMap[glSet.authPassThruNotRecRepCode],15)}" target="_blank" > {!glSet.authPassThruNotRecRepCode}</a>
+                    </td>     
+                    <td class="tdRight">{!wipReport__c.cost2DatePassthruNotRec__c}</td>
+                    <td class="tdRight"> </td>
+                </tr>
+                 <tr>
+                    <td class="tdTitle">&nbsp;</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                </tr>
+            </table>
+        </apex:pageBlockSection>
+        
+        <br>&nbsp;</br>      
+
+     
+        <!--  KPI SECTION -->
+        <apex:pageBlockSection title="{!lbl_KPI_section}">
+         <table  class="boxed">
+                <tr>
+                    <td class="tdTitle">{!lbl_KPI_actCstOnBud}</td>
+                    <td class="tdRight"></td>
+                    <td class="tdRight"> {!ROUND(wipReport__c.kpiActualCostsOnBudget__c,1)}%</td>
+                    <td class="tdRight"></td>
+                </tr>
+                <tr>
+                    <td class="tdTitle"> {!lbl_KPI_actRecRate}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight">{!ROUND(wipReport__c.kpiActualRecRate__c,1)}%</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_KPI_grossProf}</td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight">{!ROUND(wipReport__c.kpiGrossProfit__c,1)}%</td>
+                </tr>
+                <tr>
+                    <td class="tdTitle">{!lbl_KPI_contrib} </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> </td>
+                    <td class="tdRight"> {!ROUND(wipReport__c.kpiContribution__c,1)}%</td>
+                </tr>
+            </table>
+        </apex:pageBlockSection> 
+    </apex:pageBlock>
+    <p/>    
+    <apex:outputLink value="{!URLFOR($Action.WipReport__c.List, $ObjectType.WipReport__c)}" rendered="true">
+      &lt;&lt; View WIP Reports List
+   </apex:outputLink>
+   <br/>
+   <apex:outputLink value="/{!wipReport.Project__c}" rendered="{!IF((WipReport__c.Project__c != null),true,false)}">
+       &lt;&lt; View Project
+   </apex:outputLink>
+    <br/><br/>
+    <chatter:feedWithFollowers entityId="{!WipReport__c.id}"/> 
+</apex:page>

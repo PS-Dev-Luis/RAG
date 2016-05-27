@@ -1,0 +1,56 @@
+<apex:page standardController="Opportunity" extensions="EstimateRevController">
+  <style>
+    .rightAlign { text-align : right;}
+  </style>
+ <apex:form >
+  <apex:pagemessages />
+  <apex:pageBlock >
+    <apex:pageBlockTable id="pbt" value="{!revenueCostWrapperList}" var="wrapper">
+      <apex:column headerValue="Role" value="{!wrapper.role}">
+        <apex:facet name="footer">Budgeted Hours And Est Cost and Revenue</apex:facet>
+      </apex:column>
+      <apex:column headerValue="Total Hours per Role" value="{!wrapper.totalHoursPerRole}">
+        <apex:facet name="footer">
+          {!totalHours}
+        </apex:facet>
+      </apex:column>
+      
+      
+      <apex:column headerValue="Cost Rate" value="{!wrapper.costRate}">
+        <apex:facet name="footer">
+          {!blendedCostRateTotal}
+        </apex:facet>
+      </apex:column>
+
+      <apex:column headerValue="Bill Rate" value="{!wrapper.hourlyRate}">
+        <apex:facet name="footer">
+          {!blendedHourlyRateTotal}
+        </apex:facet>
+      </apex:column>
+
+
+      <apex:column value="{!wrapper.costPerRole}" styleClass="rightAlign">
+        <apex:facet name="header">
+            <div class="rightAlign">Est Cost</div>
+        </apex:facet>
+        <apex:facet name="footer">
+          <div class="rightAlign">{!totalEstimatedCost}</div>
+        </apex:facet>
+      </apex:column>
+
+
+
+      <apex:column value="{!wrapper.revenuePerRole}" styleClass="rightAlign">
+        <apex:facet name="header">
+            <div class="rightAlign">Est Revenue</div>
+        </apex:facet>
+        <apex:facet name="footer">
+          <div class="rightAlign">{!totalEstimatedRevenue}</div>
+        </apex:facet>
+      </apex:column>
+      
+    </apex:pageBlockTable>
+    
+  </apex:pageBlock>   
+ </apex:form>
+</apex:page>

@@ -1,0 +1,12 @@
+<apex:component controller="SalesInvoiceComponentsSummaryController" access="global">
+    <apex:attribute name="pageSummaryInvoiceLineItems" access="global" type="c2g__codaInvoiceLineItem__c[]"  assignTo="{!OriginInvoicelines}" description=""/>
+    <apex:attribute name="instanceName" access="global" description="" type="String"/>
+    <apex:attribute name="styleClass" access="global" description="" type="String"/>
+    <table class="{!styleClass}">
+        <apex:repeat value="{!summaryInvoiceLines}" var="invLine">
+            <apex:componentBody >
+                <apex:variable var="{!instanceName}" value="{!invLine}"/>
+            </apex:componentBody>
+        </apex:repeat>
+    </table>
+</apex:component>

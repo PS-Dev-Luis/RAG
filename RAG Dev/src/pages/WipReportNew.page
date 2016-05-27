@@ -1,0 +1,69 @@
+<apex:page standardController="WipReport__c" extensions="WipReportController" standardStylesheets="false" showHeader="true" applyHtmlTag="true">
+  <apex:pageMessages /> 
+  <head>
+    <style type="text/css">
+        .bottomAlign{
+            vertical-align: middle !important;
+        }
+        td{
+            height: 15px;
+        }  
+          
+    </Style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script>
+        $j = jQuery.noConflict();
+        
+        function removeDate( )
+        {   
+            $j('#dateOption').hide();
+            $j('#periodOption').show();
+        }
+
+        function removePeriod( )
+        {   
+            $j('#periodOption').hide();
+            $j('#dateOption').show();
+        }
+         
+    </script>
+  </head> 
+  <body>
+      <apex:form >                   
+         <apex:pageBlock title="Create New WIP Report"  mode="edit">
+          Please enter the details for the new report:<p/>
+          <table>
+            <tr>
+              <td>Project: &nbsp;&nbsp;</td> 
+              <td><apex:inputField id="formProject" value="{!wipReport.Project__c}"/></td>
+            </tr>
+    
+            <tr id="dateOption" height="30px">
+              <td>Snapshot Date: &nbsp;&nbsp;</td> 
+              <td><apex:inputField id="formUpToDate" value="{!wipReport.snapShotDate__c}"/></td>
+            </tr>
+            <tr id="periodOption" style="display: none;" height="30px">
+              <td>Snapshot Period: &nbsp;&nbsp;</td> 
+              <td><apex:inputField id="formUpToPeriod" value="{!wipReport.snapShotPeriod__c}"/></td>
+            </tr>
+    
+            <tr>
+              <td  class="bottomAlign">
+                <input type="radio" name="selectorType" value="date" checked="true" onchange="removePeriod()" >&nbsp;Date&nbsp;</input>
+                <input type="radio" name="selectorType" value="period" onchange="removeDate()">&nbsp;Period </input>
+              </td> 
+            </tr>
+          </table>
+          <p>All transactional data up to the specified date/period will be included in report.</p>
+          <br/>  
+          <apex:commandButton action="{!generateWipReport}" value="Generate Report"/>
+          <apex:commandButton action="{!cancel}" value="Cancel"  id="cancel_btn"/>
+          <p/>  
+          <br/>
+     
+      </apex:pageBlock>
+      </apex:form>
+      <script>
+      </script>    
+  </body>
+</apex:page>

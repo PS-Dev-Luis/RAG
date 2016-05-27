@@ -1,0 +1,91 @@
+<apex:component controller="SalesInvoiceComponentsExpController" access="global">
+    <apex:attribute name="pageMSBillingEvents" access="global" description="" type="pse__Billing_Event_Item__c[]" assignTo="{!expenseBillEvents}"/>
+    <apex:attribute name="instanceName" access="global" description="" type="String"/>
+    <apex:attribute name="styleClass" access="global" description="" type="String"/>
+    <apex:attribute name="firstId" access="global" description="" type="String"/>
+    <apex:attribute name="currencySymbol" access="global" description="" type="String" />
+    <table class="{!styleClass}">
+        <apex:variable var="lineNumber" value="{!0}" />
+        <apex:repeat value="{!expReportsSorted}" var="expRepWrap">
+            <apex:componentBody >
+                <apex:variable var="{!instanceName}" value="{!expRepWrap}"/>
+            </apex:componentBody>
+            <apex:variable var="lineNumber" value="{!lineNumber+1}" />
+            <!-- blank line between expense reports -->
+            <apex:outputText rendered="{!lineNumber!=1}">
+                <tr>
+                    <td colspan="5">&nbsp;</td>
+                </tr>
+            </apex:outputText>
+            
+            <!-- expense report header -->
+            <apex:outputText >
+                <thead>
+                    <tr>
+                        <th class="textAlignLeft widthSmall">Expense</th>
+                        <th class="textAlignLeft">Resource Name</th>
+                        <th class="textAlignCenter">Start Date</th>
+                        <th class="textAlignCenter">End Date</th>
+                        <th class="textAlignRight widthMedium">Amount</th>
+                    </tr>
+                </thead>
+            </apex:outputText>
+            
+            <!-- expense report detail -->
+            <tr>
+                <td>
+                    <apex:outputText value="{0,number,0}">
+                         <apex:param value="{!lineNumber}"/> 
+                    </apex:outputText>
+                </td>
+                <td>{!expRepWrap.expenseReport.pse__Resource__r.LastName}, {!expRepWrap.expenseReport.pse__Resource__r.FirstName}</td>
+                <td class="textAlignCenter">
+                    <apex:outputText value="{0,date,yyyy-MM-dd}">
+                         <apex:param value="{!expRepWrap.expenseReport.pse__First_Expense_Date__c}"/> 
+                    </apex:outputText>              
+                </td>
+                <td class="textAlignCenter">
+                    <apex:outputText value="{0,date,yyyy-MM-dd}">
+                         <apex:param value="{!expRepWrap.expenseReport.pse__Last_Expense_Date__c}"/> 
+                    </apex:outputText>              
+                </td>
+                <td class="textAlignRight widthMedium">
+                    <apex:outputText value="{0,number,#,###,###,###,###,##0.00}">
+                         {!currencySymbol}<apex:param value="{!expRepWrap.invoiceAmount}"/> 
+                    </apex:outputText>              
+                </td>
+            </tr>
+            <!-- expense item header -->
+            <thead>
+                <tr>
+                    <th class="textAlignLeft widthSmall">&nbsp;</th>
+                    <th class="textAlignLeft">Expense Details</th>
+                    <th class="textAlignCenter">Date</th>
+                    <th class="textAlignRight">Amount</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            
+            <!-- expense item detail -->
+            <apex:repeat value="{!expRepWrap.expenses}" var="exp">
+                <tr>
+                    <th>&nbsp;</th>
+                    <td>{!exp.pse__Type__c}
+                        <apex:outputText rendered="{!exp.pse__Description__c != null}"><br/><i>{!exp.pse__Description__c}</i></apex:outputText>
+                    </td>
+                    <td class="textAlignCenter">
+                        <apex:outputText value="{0,date,yyyy-MM-dd}">
+                            <apex:param value="{!exp.pse__Expense_Date__c}"/>
+                        </apex:outputText>
+                    </td>
+                    <td class="textAlignRight">
+                        <apex:outputText value="{0,number,#,###,###,###,###,##0.00}">{!currencySymbol}
+                            <apex:param value="{!exp.pse__Billable_Amount__c}"/>
+                        </apex:outputText>
+                    </td>
+                    <th>&nbsp;</th>
+                </tr>
+            </apex:repeat>
+        </apex:repeat>
+    </table>
+</apex:component>

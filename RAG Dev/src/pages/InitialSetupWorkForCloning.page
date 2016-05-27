@@ -1,0 +1,136 @@
+<apex:page controller="InitialSetupWorkForCloningController">  
+    <style type="text/css">
+    div#wait { width: 100%; height: 100% }
+    div#loading { width: 100%; height: 100%; position: fixed; top: 0px;}
+    </style>
+   
+    <center> <font color="red">
+    <h1> Warning: The functions on this page are used to initialize a PSA demo org, and should only be run by FinancialForce.com staff!</h1>
+    <p></p>
+    <h1> If you have reached this page, please DO NOT press any of the buttons, as this utility will remove any data that you have placed in the demo org!</h1>
+    </font></center>
+   
+    <script type="text/javascript">
+    function setVisible(name, visible) {
+      var e = document.getElementById(name);
+      if (e != null) {
+        if (visible) {
+          e.setAttribute("style", "display: block");
+          e.style.cssText = "display: block";
+        } else {
+          e.setAttribute("style", "display: none");
+          e.style.cssText = "display: none";
+        }
+      }
+    }
+   
+    function wait(val) {
+      setVisible('loading', val);
+      setVisible('wait', val);
+    }
+   
+    </script>
+ 
+    <div id="wait" class="waitingSearchDiv waitingSearchDivOpacity" style="display: none"></div>
+    <div id="loading" class="waitingSearchDiv" style="display: none">
+     <div id="waitingHolder" class="waitingHolder">
+      <img class="waitingImage" src="/img/loading.gif"/>
+      <span class="waitingDescription">Processing.....Please Wait !!</span>
+     </div>
+    </div>
+    
+    <apex:form >
+    <apex:actionfunction action="{!isbatchCompleted}" oncomplete="checkBactchStatus();" name="checkBatchStatusFunc" reRender="ActualsPanel,scrptPanel"/>
+    <apex:outputPanel id="scrptPanel">
+    <script>
+        var status = {!batchCompletionStatus};
+    </script>
+    </apex:outputPanel>
+   
+    <apex:actionStatus id="ajaxStatus" onstart="wait(true)" onstop="wait(false)" />
+    <apex:pageBlock id="ProjBlock" >
+        <apex:pageblockButtons >
+            <apex:commandButton value="Fix Projects & RPGs" action="{!doProjRPGFixing}" onclick="wait(true);" oncomplete="checkBactchStatus();return false;" reRender="ProjBlock,scrptPanel" disabled="{!disablePrjFixing}"/>
+            <apex:commandButton value="Cancel" action="{!cancel}"/>
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection columns="2">
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel > # Projects : </apex:outputLabel>
+                <apex:outputText value="{!noOfProj}"></apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel > # Regions : </apex:outputLabel>
+                <apex:outputText value="{!noOfRegion}"></apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem ><apex:outputLabel ></apex:outputLabel></apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel > # Practices : </apex:outputLabel>
+                <apex:outputText value="{!noOfPractice}"></apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel > # Groups : </apex:outputLabel>
+                <apex:outputText value="{!noOfGroup }"></apex:outputText>
+            </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+        <apex:actionfunction action="{!isbatchCompletedForActuals}" oncomplete="checkBtchStatForActual();" name="checkBatchStatusJS" reRender="scrptPanelOfActuals"/>
+        <apex:outputPanel id="scrptPanelOfActuals">
+        <script>
+            var actualStatus = {!batchCompletionStatusForActuals};
+        </script>
+        </apex:outputPanel>
+        <script>
+        function checkBactchStatus() {
+            if (status == 'true' || status == true) {
+                wait(false);
+                alert('All Projects and RPGs are Fixed Successfully'); 
+            }else{
+                setTimeout("", 100);
+                checkBatchStatusFunc();
+            }
+        }
+ 
+        function checkBtchStatForActual() {
+            if (actualStatus == true || actualStatus == 'true' ) {
+                wait(false);
+                alert('All Actuals are Fixed Successfully');
+            }else{
+                setTimeout("", 100);
+                checkBatchStatusJS(); 
+            }
+        }
+        </script>
+        <apex:outputPanel id="ActualsPanel">
+        <apex:pageBlock rendered="{!displayActualBlock}" >
+            <apex:pageblockButtons >
+                <apex:commandButton value="Fix Actuals" action="{!doActualsFixing}" onclick="wait(true);" reRender="ActualsPanel, scrptPanelOfActuals" oncomplete="checkBtchStatForActual()" disabled="{!disableActualFixing }"/>
+                <apex:commandButton value="Cancel" action="{!cancel}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel > # Resource Actuals : </apex:outputLabel>
+                    <apex:outputText value="{!noOfResActuals}"></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel > # Region Actuals : </apex:outputLabel>
+                    <apex:outputText value="{!noOfRgnActuals}"></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel > # Project Actuals : </apex:outputLabel>
+                    <apex:outputText value="{!noOfProjActuals}"></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel > # Practice Actuals : </apex:outputLabel>
+                    <apex:outputText value="{!noOfPracActuals}"></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel > # Group Actuals : </apex:outputLabel>
+                    <apex:outputText value="{!noOfGrpActuals}"></apex:outputText>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+        </apex:outputPanel>
+    </apex:form>
+</apex:page>

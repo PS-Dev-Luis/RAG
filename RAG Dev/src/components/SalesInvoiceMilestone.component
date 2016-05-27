@@ -1,0 +1,12 @@
+<apex:component controller="SalesInvoiceComponentsMsController" access="global">
+    <apex:attribute name="pageMSBillingEvents" access="global" description="" type="pse__Billing_Event_Item__c[]" assignTo="{!mileStoneBillEvents}"/>
+    <apex:attribute name="instanceName" access="global" description="" type="String"/>
+    <apex:attribute name="styleClass" access="global" description="" type="String"/>
+    <table class="{!styleClass}">
+        <apex:repeat value="{!milestones}" var="mileStone" >
+            <apex:componentBody >
+                <apex:variable var="{!instanceName}" value="{!mileStone}"/> 
+            </apex:componentBody>
+        </apex:repeat>
+    </table>
+ </apex:component>

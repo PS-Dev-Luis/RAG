@@ -1,0 +1,237 @@
+<apex:page controller="DepositController" title="Fast Deposit Entry" showHeader="true" sidebar="false">
+    <c:JQuery />
+
+    <style type="text/css">
+        table#lines {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table#lines td, table#lines th {
+            padding: 4px;
+            vertical-align: middle;
+            border: 1px solid #E3E3E3;
+        }
+
+        table#lines th {
+            background-color: #cdcdcd;
+        }
+
+        table#lines tr {
+            border: 1px solid transparent;
+        }
+
+        input[type="text"] {
+            padding: 2px;
+        }
+
+        input.cashBack, input.bank {
+            width: 200px;
+        }
+
+        .amount input, .ref input {
+            width: 60px;
+        }
+
+        .rec input, .acc input {
+            width: 150px;
+        }
+
+        .ui-autocomplete-loading, .spinning {
+            background: white url('/img/loading.gif') right center no-repeat;
+        }
+
+        .ui-autocomplete {
+            max-height: 300px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+
+        .autocompInfo {
+            color: #666 !important;
+        }
+
+        .invalid, .reqd {
+            border-left: solid 4px red;
+        }
+
+        .found {
+            border-left: solid 4px lime;
+        }
+
+        .lineRowTmpl {
+            display: none;
+        }
+
+        .btnSave {
+            margin-left: 25% !important;
+        }
+    </style>
+
+    <script type="text/javascript">
+        var dateFormat = '{!dateFormat}';
+        var locale = '{!locale}';
+
+        $j(document).ready(function(){
+            Globalize.culture( locale );
+
+            autoComp( $j('.cashBack'), {!$RemoteAction.DepositController.autocompleteGLA} );
+
+            $j('.newLine').click( function() {
+                newLine();
+            });
+
+            newLine();
+
+        });
+
+
+
+
+        function autoComp( inp, func, onChosen ) 
+        {
+            inp.parent().addClass('invalid');
+
+            inp.autocomplete(
+            {
+                minLength: 1,
+                source: function( request, response ) 
+                {
+                    queryTerm = request.term;
+                    func( queryTerm, function( result, event ) 
+                    {
+                        if( event.status ) {
+                            response( result );
+                        }
+                        else {
+                            showError( event.message );
+                        }
+                    });
+                },
+
+                search: function( event, ui ) 
+                {
+                },
+                
+                focus: function( event, ui ) 
+                {
+                    return false;
+                },
+            
+                select: function( event, ui ) 
+                {
+                    $j(this).val( jDecode( ui.item.Name ) ).attr( 'id', ui.item.RecordId );
+                    if( onChosen && $j.isFunction(onChosen)) {
+                        onChosen();
+                    }
+
+                    return false;
+                },
+                
+                position: { my: "left top", at: "left bottom", collision: "flip" }
+            
+            }).data( "ui-autocomplete" )._renderItem = function( ul, item ) 
+            {
+                var disp = item.Info === undefined ? item.Name : item.Name + " <span class=\"autocompInfo\">(" + item.Info + ")</span>";
+
+                return $j( "<li>" )
+                    .append( "<a>" + disp + "</a>" )
+                    .appendTo( ul );
+            };
+
+            inp.blur( function() {
+                if( $j(this).val() == '' ) {
+                    $j(this).parent().removeClass('found').addClass('invalid');
+                    $j(this).removeAttr('id');
+                }
+            });
+        }
+
+        function newLine() {
+            var row = $j('.lineRowTmpl').clone().removeClass('lineRowTmpl').addClass('rowActual');
+            row.appendTo('#lines');
+
+            row.find('.del input').click( function() {
+
+                var inp = $j(this);
+                confirmDialog( 'Are you sure you want to delete this line?', function() {
+                    // remove the tr from the DOM
+                    inp.parent().parent().remove();
+                    renumber();
+                });
+
+                return false;
+            });
+
+            row.find('.amount input').blur( function() {
+                var amt = Globalize.parseFloat( $j(this).val() );
+                if( !isNaN( amt ) ) {
+                    $j(this).parent().removeClass('invalid').addClass('found');
+                } else {
+                    $j(this).parent().addClass('invalid').removeClass('found');
+                }
+            });
+
+            // wire up autocomplete on each cell
+            autoComp( row.find('.rec input'), {!$RemoteAction.DepositController.autocompleteAccount} );
+            autoComp( row.find('.acc input'), {!$RemoteAction.DepositController.autocompleteGLA} );
+            autoComp( row.find('.proj input'), {!$RemoteAction.DepositController.autocompleteProduct} );
+            autoComp( row.find('.dim1 input'), {!$RemoteAction.DepositController.autocompleteDimension1} );
+
+
+            return row;
+        }
+
+    
+    </script>
+
+    <apex:sectionHeader title="Fast Deposit Entry"/>    
+    <apex:form id="frmLineItemEdit">
+        <apex:pageBlock >
+            <span class="ui-helper-hidden-accessible"><input type="text"/></span>
+            <apex:outputPanel >
+                Date: <input type="text" class="journalDate" />&nbsp;&nbsp;Bank Account: <span><input type="text" class="bank"/></span>&nbsp;&nbsp;Bank GLA: <span><input type="text" class="cashBack"/></span>
+            </apex:outputPanel>
+
+            <table id="lines">
+                <tr>
+                    <th class="no">#</th>
+                    <th class="rec">Received From</th>
+                    <th class="acc">Account</th>
+                    <th class="desc">Description</th>
+                    <th class="method">Payment Method</th>
+                    <th class="ref">Ref No</th>
+                    <th class="amount">Amount</th>
+                    <th class="proj">Project</th>
+                    <th class="dim1">Class</th>
+                    <th class="del"></th>
+                </tr>
+                <tr class="lineRowTmpl">
+                    <td class="no"></td>
+                    <td class="rec"><span><input type="text" /></span></td>
+                    <td class="acc"><span><input type="text" /></span></td>
+                    <td class="desc"><input type="text" /></td>
+                    <td class="method"><select><option value=""></option><option value="Cash">Cash</option><option value="BACS">BACS</option><option value="Cheque">Cheque</option><option value="Standing Order">Standing Order</option><option value="CAF Vouchers">CAF Vouchers</option></select></td>
+                    <td class="ref"><input type="text" /></td>
+                    <td class="amount"><span class="invalid"><input type="text" /></span></td>
+                    <td class="proj"><span><input type="text" /></span></td>
+                    <td class="dim1"><span><input type="text" /></span></td>
+                    <td class="del"><input class="btn" type="button" value="Delete" /></td>
+                </tr>
+            </table>
+
+            <p><input class="btn newLine" type="button" value="Add Line" /></p>
+
+        </apex:pageBlock>
+
+        <apex:pageBlock >
+            <apex:outputPanel >
+                <input class="btn btnSave" type="button" value="Save and New" />
+            </apex:outputPanel>
+        </apex:pageBlock>
+
+        <div id="msg"></div>
+    </apex:form>
+</apex:page>

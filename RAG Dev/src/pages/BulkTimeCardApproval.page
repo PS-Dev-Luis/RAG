@@ -1,0 +1,62 @@
+<apex:page title="Bulk Timecard Approval" controller="BulkTimeCardApprovalController" showHeader="true" sidebar="true" >
+
+<style type="text/css">
+
+	table.gridtable {
+		font-family: verdana,arial,sans-serif;
+		font-size:11px;
+		width: 100%;
+		color:#333333;
+		border-width: 1px;
+		border-color: #666666;
+		border-collapse: collapse;
+	}
+		table.gridtable th {
+		border-width: 1px;
+		padding: 10px;
+		border-style: solid;
+		border-color: #666666;
+		background-color: #dedede;
+	}
+		table.gridtable td {
+		border-width: 1px;
+		padding: 4px;
+		border-style: solid; 		  
+		white-space: nowrap;
+		border-color: #666666;
+		background-color: #ffffff;
+		text-align:center; 
+    	vertical-align:middle;
+	}
+
+</style>
+<script>
+   
+</script>
+<apex:pageMessages id="messageBlock" />
+	<apex:form id="theForm">   
+		<apex:pageBlock mode="edit" title="Timecards ready for Approval: {!company.Name}">
+			<apex:pageBlockSection >
+				<apex:dataTable value="{!timecardWrapperList}" var="item" id="table" styleClass="gridtable">
+					<apex:column >
+						<apex:facet name="header">
+							<apex:inputCheckbox value="{!all}">
+								<apex:actionSupport event="onchange" action="{!selectAll}" rerender="table"/>
+							</apex:inputCheckbox>
+						</apex:facet>
+						<apex:inputCheckbox value="{!item.selected}" />
+					</apex:column>    
+					<apex:repeat value="{!fieldSetMap}" var="f"> 
+						<apex:repeat value="{!fieldSetMap[f]}" var="x">  
+							<apex:column >
+								<apex:facet name="header">{!f}</apex:facet>
+								<apex:outputField value="{!item.timecard[x]}"/>
+							</apex:column>
+						</apex:repeat> 
+					</apex:repeat>      
+				</apex:dataTable>
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	<apex:commandButton action="{!approve}" value="Approve" />
+	</apex:form>
+</apex:page>

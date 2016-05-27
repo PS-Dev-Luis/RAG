@@ -1,0 +1,764 @@
+<apex:page standardController="pse__Miscellaneous_Adjustment__c" recordSetVar="MiscAjs" extensions="MiscAdjustmentController" standardStylesheets="false" showHeader="true" applyHtmlTag="true">
+    <apex:pageMessages /> 
+    <head>
+        <style type="text/css">
+            
+            .bottomAlign{
+                vertical-align: middle !important;
+            }
+              
+            td{
+                height: 15px; 
+            }
+             
+            #containerDiv {
+                margin-left: 10px;       
+                margin-bottom: 20px;
+            } 
+           
+            table.mainTable {
+                width: 95%; 
+                border-collapse: collapse; 
+                margin-top: 10px;
+                margin-left: 20px;
+            }
+    
+            table.mainTable td, table.mainTable th {
+                padding: 4px;
+                vertical-align: middle;
+                border: 0px solid;
+            }
+    
+            table.mainTable th {
+                background-color: #cdcdcd;
+                border-left: solid 4px #cdcdcd;
+                border-bottom: solid 4px #cdcdcd;
+            }
+    
+            table.mainTable tr {
+                vertical-align: top;
+                border: 1px solid #E3E3E3;
+            }
+
+            table.mainTable tr.newlineRow {
+                vertical-align: top;
+                border-left: 4px solid transparent;
+                border-bottom: 2px solid #E3E3E3;
+                border-right: 2px solid #E3E3E3;
+            }
+            table.mainTable tr.newlineRow td {
+                padding: 5px;
+            }
+            
+            input[type="text"] {
+                padding: 2px;
+            }
+    
+            .catInpt,
+            .prodInpt  {
+                width: 150px;
+            }
+            .nameInpt  {
+                width: 220px;
+            }
+            .amountInpt, 
+            .calcAmountInpt, 
+            .userAmountInpt,
+            .dateInpt  {
+                width: 100px;
+            }
+    
+            <!-- Autocomplete css -->
+            .ui-autocomplete-loading, .spinning {
+                background: white url('/img/loading.gif') right center no-repeat;
+            }
+    
+            .ui-autocomplete {
+                max-height: 300px;
+                overflow-y: auto;
+                /* prevent horizontal scrollbar */
+                overflow-x: hidden;
+            }
+    
+            .autocompInfo {
+                color: #666 !important;
+            }
+    
+            .invalid, .reqd {
+                border-left: solid 4px red !important;
+            }
+    
+            .found, .valid{
+                border-left: solid 4px transparent !important;
+            }}
+    
+            .btnSave {
+                margin-left: 25% !important;
+            }
+            
+            .modal {
+                display:    none;
+                position:   fixed;
+                z-index:    20000;
+                top:        0;
+                left:       0;
+                height:     100%;
+                width:      100%;
+                background: rgba( 255, 255, 255, .8 ) 
+                url('/img/loading.gif') 
+                50% 50% 
+                no-repeat;
+            }
+                        
+            /* When the body has the loading class, we turn
+            the scrollbar off with overflow:hidden */
+            body.loadingCustom {
+                overflow: hidden;   
+            }
+            /* Anytime the body has the loading class, our
+            modal element will be visible */
+            body.loadingCustom .modal {
+                display: block;
+            }
+            
+        </Style>
+        <c:JQuery />
+    </head>
+    <body>
+    
+        <apex:sectionHeader title="New Miscellaneous Adjustments : {!project.name}"/>    
+        <apex:pageBlock mode="edit" title="Project Currency : {!project.currencyIsoCode}"  >
+            <div id="containerDiv">        
+            
+                <apex:form >    
+                    <br/>
+            		<!--  FIXED PRICE ADJUSTMENTS -->
+                    <h2>Fixed Price Adjustments: </h2>
+                    <table class="mainTable" id="fixTable">
+                        <thead>
+                            <tr>
+                            
+                                <!-- Insert Headers here -->
+                                <th>Product</th>   
+                                <th>Name</th> 
+                                <th>Effective Date</th> 
+                                <th>Category</th>   
+                                <th>Amount ({!project.currencyIsoCode})</th>   
+                                <th></th>   
+     
+                            </tr>
+                        </thead>    
+                        <tbody id="fixTableBody">
+                            <tr id="protoLine1" hidden="true">
+       
+                               <!-- Insert Inputs here -->
+                               	<input type="hidden" class="caseInpt" value="false"/> 
+                                <td><input type="text" class="prodInpt" placeholder="Search Products"/></td> 
+                                <td><input type="text" class="nameInpt"/> </td> 
+                                <td><input type="text" class="dateInpt" onchange="onDateChange(this)" value="{!pse__Miscellaneous_Adjustment__c.pse__Effective_Date__c}"/></td>
+                                <td><apex:inputfield styleClass="catInpt" onchange="onCatChange(this)" value="{!pse__Miscellaneous_Adjustment__c.pse__Transaction_Category__c}"/> </td> 
+                                <td><input class="amountInpt" type="text" readonly="true"/></td> 
+                                <td><img src="/img/func_icons/remove12_on.gif" onclick="removeLine(event, this)"></img></td>   
+                            </tr>
+                            <tr class="newlineRow">
+                                <td colspan="6" onclick="newFixLine()">
+                                    <img src="/img/feeds/follow12.png" />&nbsp;&nbsp;New Fixed Price Adjustments 
+                                </td>
+                            </tr>
+                       </tbody>
+                    </table>
+                    <br/>     
+                    <br/>     
+
+
+            		<!--  VARIABLE PRICE ADJUSTMENTS -->
+                    <h2>Variable Price Adjustments:</h2>
+                    <table class="mainTable">
+                        <thead>
+                            <tr>
+                            
+                                <!-- Insert Headers here -->
+                                <th>Product</th>   
+                                <th>Name</th> 
+                                <th>Effective Date</th> 
+                                <th>Category</th>   
+                                <th>Currency</th>   
+                                <th>Amount</th>   
+                                <th>Amount ({!project.currencyIsoCode})</th>   
+                                <th></th>   
+     
+                            </tr>
+                        </thead>    
+                        <tbody id="varTableBody">
+                            <tr id="protoLine2" hidden="true">
+       
+                               <!-- Insert Inputs here -->
+                               	<input type="hidden" class="caseInpt" value="false"/> 
+                                <td><input type="text" class="prodInpt" placeholder="Search Products"/></td> 
+                                <td><input type="text" class="nameInpt"/> </td> 
+                                <td><input type="text" class="dateInpt" onchange="onDateChange(this)" value="{!pse__Miscellaneous_Adjustment__c.pse__Effective_Date__c}"/></td>
+                                <td><apex:inputfield styleClass="catInpt" onchange="onCatChange(this)" value="{!pse__Miscellaneous_Adjustment__c.pse__Transaction_Category__c}"/> </td> 
+                                <td>
+                                    <apex:selectList size="1" styleClass="currInpt" onchange="convertAmount(this)" > 
+                                        <apex:selectOptions value="{!accCurrencies}" /> 
+                                    </apex:selectList> 
+                                </td> 
+                                <td><input class="userAmountInpt" type="number" onchange="convertAmount(this)"/></td> 
+                                <td><input class="calcAmountInpt" type="text" readonly="true"/></td> 
+                                <td><img src="/img/func_icons/remove12_on.gif" onclick="removeLine(event, this)"></img></td>   
+                            </tr>
+                            <tr class="newlineRow">
+                                <td colspan="8" onclick="newVarLine()">
+                                    <img src="/img/feeds/follow12.png" />&nbsp;&nbsp;New Variable Price Adjustments 
+                                </td>
+                            </tr>
+                       </tbody>
+                    </table>
+                    <br/>     
+                    <br/>     
+
+            		<!-- CASE RELATED ADJUSTMENTS -->
+                    <h2>Case Related Adjustments:</h2>
+                    <br/>
+                    <p>
+                    	{!Project.pse__Account__r.Name}: 
+						{!unAllocatedCasesNo} unallocated Cases
+					</p>
+					
+					<apex:outputText rendered="{!unAllocatedCasesNo > 0}">
+	                    <table class="mainTable" id="caseTable">
+	                        <thead>
+	                            <tr>
+	                            
+	                                <!-- Insert Headers here -->
+	                                <th>Product</th>   
+	                                <th>Name</th> 
+	                                <th>Effective Date</th> 
+	                                <th>Category</th>   
+	                                <th>Unit Price ({!project.currencyIsoCode})</th>   
+	                                <th>Quantity </th>   
+	                                <th>Total ({!project.currencyIsoCode})</th>   
+	                                <th></th>   
+	     
+	                            </tr>
+	                        </thead>    
+	                        <tbody id="caseTableBody">
+	                            <tr id="protoLine3" hidden="true">
+	       
+	                               <!-- Insert Inputs here -->
+	                               	<input type="hidden" class="caseInpt" value="true"/> 
+	                                <td><input type="text" readonly="true" class="prodInpt" value="{!caseProduct.Name}" id="{!caseProduct.RecordId}"/></td> 
+	                                <td><input type="text" class="nameInpt" value="{!projCode} - {!caseProduct.Name} ({!caseProduct.Code}) - {!todayStringYYYYMMDD}"/> </td> 
+	                                <td><input type="text" readonly="true" class="dateInpt"  value="{!todayString}"/></td>
+	                                <td><apex:inputfield styleClass="catInpt" onchange="onCatChange(this)" value="{!pse__Miscellaneous_Adjustment__c.pse__Transaction_Category__c}"/> </td> 
+	                                <td><apex:inputtext styleClass="unitInpt" disabled="{!$Permission.Edit_Misc_Adj_Price == false}" value="{!caseProduct.Info}" onchange="recalc(this)"/></td> 
+	                                <td><input class="quantityInpt" type="text" readonly="true" value="{!unAllocatedCasesNo}"/></td> 
+	                                <td><input class="calcAmountInpt" type="text" readonly="true" value="{!VALUE(caseProduct.Info) * unAllocatedCasesNo}" /></td> 
+	                                <td><img src="/img/func_icons/remove12_on.gif" onclick="removeCaseLine(event, this)"></img></td>   
+	                            </tr>
+	                            <tr class="newlineRow3">
+	                                <td colspan="8" onclick="allocateCases()">
+	                                    <img src="/img/feeds/follow12.png" />&nbsp;&nbsp;Add unallocated cases as Miscellaneous Adjustment?
+	                                </td>
+	                            </tr>
+	                       </tbody>
+	                    </table>                    
+					</apex:outputText>
+                    <br/>     
+                    <br/>     
+                    <br/>
+                    
+                    <input id="saveMiscAdj" name="saveBtn" type="button" class="btn" value="Save" onclick="saveMiscAdjs()"/>
+                    <apex:commandButton action="{!cancel}" value="Cancel"  id="cancel_btn"/>
+                
+                    <!-- Div to present Jquery messages -->
+                    <div id="msg"></div>
+                </apex:form>
+            </div>
+        </apex:pageBlock>
+        <!-- Place at bottom of page -->
+        <div class="modal"/>
+        
+        <apex:variable var="counter" value="{!0}" /> 
+                
+    </body>
+
+        <script>
+        
+            var dateFormat = '{!dateFormat}';
+            var locale = '{!locale}';
+            var line = 0;
+            var totalLines = 0;
+    
+            /**
+             *  Intialise
+             **/
+            $j(document).ready( function()
+                                {
+                                    Globalize.culture( locale );
+                                    $j('.dateInpt').parent().addClass('valid');
+                                    $j('.catInpt').parent().addClass('invalid');
+                                    $j('.userAmountInpt').parent().addClass('invalid');
+                                    
+                                    <!-- prevent form submission from Enter key in a field -->
+                                    $j(window).keydown( function(event){
+                                                            if(event.keyCode == 13) {
+                                                                event.preventDefault();
+                                                                return false;
+                                                            }
+                                                        });
+                                });   
+            
+
+            function loading(val)
+            {
+                if(val==true)
+                {
+                    $j("body").addClass("loadingCustom");
+                } else {
+                    $j("body").removeClass("loadingCustom");
+                }
+            }
+                            
+            /**
+             * Table Control
+             */           
+            // New line
+            function newFixLine(){
+                line++;
+                totalLines++;
+                
+                var newline = $j('#protoLine1').clone();
+                newline.attr( 'id', 'newLine' + line).show();
+                $j('#fixTableBody tr:last').before(newline);
+    
+                $j(newline).find('.dateInpt').datepicker( { dateFormat: dateFormat } );
+                $j(newline).find('.dateInpt').datepicker('setDate', new Date());
+                autoComp( $j(newline).find('.prodInpt') , {!$RemoteAction.MiscAdjustmentController.autocompleteProduct}, null, false );;
+            }
+            // New line
+            function newVarLine(){
+                line++;
+                totalLines++;
+                
+                var newline = $j('#protoLine2').clone();
+                newline.attr( 'id', 'newLine' + line).show();
+                $j('#varTableBody tr:last').before(newline);
+    
+                $j(newline).find('.dateInpt').datepicker( { dateFormat: dateFormat } );
+                $j(newline).find('.dateInpt').datepicker('setDate', new Date());
+                autoComp( $j(newline).find('.prodInpt') , {!$RemoteAction.MiscAdjustmentController.autocompleteProduct}, null, true );;
+            }
+                        
+            // New line
+            function allocateCases(){
+                line++;
+                totalLines++;
+                
+                var newline = $j('#protoLine3').clone();
+                newline.attr( 'id', 'newLine' + line).show();
+                $j('#caseTableBody tr:last').before(newline);
+    
+                $j(newline).find('.catInpt').val('Booked Revenue').parent().removeClass('invalid');
+           		$j('#caseTableBody tr:last').hide();
+            }
+                        
+            // Remove line
+            function removeLine( event, currentItem ){
+                $j(currentItem).parent().parent().remove();
+            }
+            function removeCaseLine( event, currentItem ){
+                $j(currentItem).parent().parent().parent().find('.newlineRow3').show();
+                $j(currentItem).parent().parent().remove();
+            }
+            
+         
+            
+            /*********************
+             * Action Functions  *
+             *********************/
+        
+            /**
+             * AutoComplete Functions
+             */
+            // Auto complete wrapper of Jquery Autocomplete functionality    
+            function autoComp( input, remotefunc, onChosen, variablePriceFlag ) 
+            {
+                input.parent().addClass('invalid');
+     			var line = $j(input).parent().parent();
+     
+                // Jquery Autocomplete function
+                input.autocomplete({
+                    minLength: 1,
+ 
+                    source: function( request, response ) {
+                    
+                                queryTerm = request.term;
+                                remotefunc( queryTerm,
+                                            '{!project.CurrencyIsoCode}', 
+                                            variablePriceFlag,
+                                            line.find('.dateInpt').val(),
+                                            
+                                            // Return Function
+                                            function( result, event ) {
+                                                if( event.status ) 
+                                                {
+                                                    // Jquery response
+                                                    response( result );
+                                                } 
+                                                else 
+                                                {
+                                                    showError( event.message );
+                                                }
+                                            });
+                            },
+                    
+                    search: function( event, ui ) {
+                                <!-- clear product name/code -->
+                                $j(this).parent().parent().find('.nameInpt').val( '' );
+                                <!-- Add Amount -->
+                                $j(this).parent().parent().find('.amountInpt').val( '' );
+                                $j(this).parent().removeClass('found').addClass('invalid');
+                            },
+                    
+                    focus:  function( event, ui ) {
+                                $j(this).val( divWrap( ui.item.Name ) );
+                                return false;
+                            },
+                    
+                    select: function( event, ui ) {
+                                $j(this).parent().addClass('found').removeClass('invalid');
+                                <!-- Add product name/code -->
+                                $j(this).parent().parent().find('.nameInpt').val(  '{!projCode} - ' + ui.item.Name +' (' + ui.item.Code +')' 
+                                													+ ' - {!todayStringYYYYMMDD} ' );
+                                <!-- Add Amount -->
+                                $j(this).parent().parent().find('.amountInpt').val( ui.item.Info );
+                                $j(this).parent().parent().find('.catInpt').val( 'Booked Revenue' );
+                                $j(this).parent().parent().find('.catInpt').parent().switchClass('invalid','valid' );
+                                $j(this).val( divWrap( ui.item.Name ) ).attr( 'id', ui.item.RecordId );
+                                if( onChosen && $j.isFunction(onChosen)) {
+                                    onChosen();
+                                }
+            
+                                return false;
+                            },
+    
+                    position: { my: "left top", 
+                                at: "left bottom", 
+                                collision: "flip" }
+    
+                }).data( "ui-autocomplete" )._renderItem =  function( ul, item ) {
+                                                                var disp = item.Info === undefined ? item.Name 
+                                                                                                   : item.Name + " <span class=\"autocompInfo\">(" 
+                                                                                                               + item.Info
+                                                                                                               + " {!project.currencyIsoCode}" 
+                                                                                                               + ")</span>";
+                                                                return $j( "<li>" )
+                                                                    .append( "<a>" + disp + "</a>" )
+                                                                    .appendTo( ul );
+                                                            };
+    
+                input.blur( function() {
+                                if( $j(this).val() == '' ) {
+                                    $j(this).parent().removeClass('found').addClass('invalid');
+                            }
+                });
+            } // end of autoComp
+    
+     
+            /**
+             * Convert Amount
+             **/
+            function convertAmount(input) {
+                var line = $j(input).parent().parent();
+                var amountInput = $j(line).find('.userAmountInpt');
+               
+                $j(amountInput).addClass('ui-autocomplete-loading');
+                $j(amountInput).parent().removeClass('found').addClass('invalid');
+
+                var amount = $j(amountInput).val();
+                var chosenCurrency = line.find('.currInpt').val();
+                var projCurrencyCode = '{!project.currencyIsoCode}';
+                var effectiveDate = line.find('.dateInpt').val();
+                
+                // Call remote function
+                remoting.convertAmount.invoke( amountInput, amount, chosenCurrency, projCurrencyCode, effectiveDate ); 
+        
+            } // end of convert Amount
+
+
+            function recalc(input) {
+            
+                var line = $j(input).parent().parent();
+                var amountInput = $j(input).val();
+               	var quantity = {!unAllocatedCasesNo};
+               	if( $j.isNumeric(amountInput) == false )
+               	{
+					$j(input).parent().removeClass('found').addClass('invalid');
+					$j(input).parent().parent().find('.calcAmountInpt').parent().addClass('invalid');
+					$j(input).parent().parent().find('.calcAmountInpt').val( 'Error' );
+					showError( 'Please enter a valid amount.' );
+               	}
+               	else
+               	{
+					$j(input).parent().parent().find('.calcAmountInpt').parent().removeClass('invalid');
+					$j(input).parent().addClass('found').removeClass('invalid');
+                }
+                var amount = parseFloat(amountInput) * parseFloat(quantity); 
+				$j(input).parent().parent().find('.calcAmountInpt').val( amount );
+            } // end of convert Amount
+
+    
+            /**
+             * Save Misc Adjustments
+             **/
+            function saveMiscAdjs() {
+                var newMiscAdjs = new Array();
+                var invalids = $j('.mainTable').find('[id^="newLine"]').find('[class = "invalid"]');
+                if( invalids.length != 0 )
+                {
+                    showError(  'Please correct errors before saving.', 'Submission Error!');
+                    return false;
+                }                   
+                
+                $j('.mainTable').find('[id^="newLine"]').each( function(index){
+                                                                   var row = new Object();
+                                                                   row.prodId = $j(this).find('.prodInpt').attr('id');
+                                                                   row.miscDate = $j(this).find('.dateInpt').val();
+                                                                   row.name = $j(this).find('.nameInpt').val();
+                                                                   row.isCaseMiscAdj = $j(this).find('.caseInpt').val();
+                                                                   // For fixed lines take the amount, for calc lines take the calculated amount.
+                                                                   row.amount = $j(this).find('.amountInpt').val() != null 
+                                                                                ? $j(this).find('.amountInpt').val()
+                                                                                : $j(this).find('.calcAmountInpt').val();
+                                                                   row.cat = $j(this).find('.catInpt').val();
+                                                                      
+                                                                   newMiscAdjs.push(row);
+                                                                       
+                                                               } );
+                loading(true);                
+                // Call remote function
+                remoting.createMiscAdjs.invoke( newMiscAdjs ); 
+
+            } // end of saveMiscAdjs 
+
+
+            /**
+             *  Remoting
+             **/
+            var remoting = {
+                namespace: 'ffps_0387',
+                controller: 'MiscAdjustmentController',
+
+                // Convert Amount 
+                convertAmount: {
+                    target: null,
+                    invoke: function( input, amount, chosenCurrency, projCurrencyCode, effectiveDate ) {
+                        target = input;
+                        Visualforce.remoting.Manager.invokeAction(  remoting.namespace+'.'+remoting.controller+'.convertAmount',
+                                                                    amount, 
+                                                                    chosenCurrency, 
+                                                                    projCurrencyCode,
+                                                                    effectiveDate, 
+                                                                    this.callback, 
+                                                                    {escape: false});
+                    },
+                    callback: function(result, event)
+                    {
+                        $j(this.target).removeClass('ui-autocomplete-loading');         
+                        if(event.status) {  
+                            // Write the converted amount to Amount field
+                            $j(this.target).parent().removeClass('invalid').removeClass('loading').addClass('found');
+                            $j( this.target ).parent().parent().find('.calcAmountInpt').val( result );
+                        } else {
+                            showError( event.message, 'Error converting Miscellaneous Adjustments amount.' );
+                        } 
+                    }
+                },
+
+                // Create Miscellaneous Adjustments 
+                createMiscAdjs: {
+                    invoke: function( newMiscAdjs ) {
+                        var unallocatedList = {!unallocatedCasesId_seialLst};
+                        Visualforce.remoting.Manager.invokeAction(  remoting.namespace+'.'+remoting.controller+'.saveMiscAdjs',
+                                                                    newMiscAdjs, 
+                                                                    '{!projId}',
+                                                                    unallocatedList,  
+                                                                    this.callback, 
+                                                                    {escape: false});
+                    },
+                    callback: function(result, event)
+                    {
+                        if(event.status) {  
+                            window.top.location.href = '/{!project.id}';
+                        } else {
+                            loading(false);
+                            showError( event.message, 'Error saving Miscellaneous Adjustments.' );
+                        } 
+                    }
+                }
+                
+            }// end of Remoting
+            
+            /*********************************************/
+   
+            function divWrap(str) {
+                return $j("<div/>").html(str).text();
+            }
+    
+    
+    
+            /**
+             * Status Message functions
+             */
+             // Show Message
+            function showMsg( msg, isBusy ) {
+                if( isBusy ) msg = '<img style="vertical-align:middle;" src="/img/loading.gif" alt="" /> ' + msg;
+                $j('#msg').html( '<p>' + msg + '</p>' ).dialog({
+                    autoOpen: true,
+                    height: 140,
+                    modal: true,
+                    draggable: false,
+                    resizable: false,
+                    closeOnEscape: false,
+                    open: function(event, ui) { $j(".ui-dialog-titlebar-close").hide(); }
+                }).dialog( 'open' );
+            }
+    
+            // Hide Message
+            function hideMsg() {
+                $j('#msg').dialog( 'close' );
+            }
+            
+            // Show Error   
+            function showError( err, title, onOK ) {
+                if( arguments.length == 1 ) {
+                    title = 'Error!';
+                }
+    
+                $j('<div>' + err + '</div>').dialog({
+                    modal: true,
+                    title: title,
+                    buttons: [
+                        {
+                            text: 'OK',
+                            click: function() { 
+                                $j(this).dialog("close");
+    
+                                // if there is a callback, execute it
+                                if (onOK && $j.isFunction(onOK)) {
+                                    onOK();
+                                }
+    
+                                // destroy the confirmation dialog
+                                $j(this).dialog("destroy");
+                            }
+                        }
+                    ]
+                });
+            }
+    
+            // Confirm Dialog
+            function confirmDialog(message, onOK, onCancel) {
+                $j('<div>' + message + '</div>').dialog({
+                    modal: true,
+                    title: 'Confirmation',
+                    buttons: [
+                        {
+                            text: 'OK',
+                            click: function() { 
+                                $j(this).dialog("close");
+    
+                                // if there is a callback, execute it
+                                if (onOK && $j.isFunction(onOK)) {
+                                    onOK();
+                                }
+    
+                                // destroy the confirmation dialog
+                                $j(this).dialog("destroy"); 
+                                
+                            }
+                        },
+                        {
+                            text: 'Cancel',
+                            click: function() { 
+                                $j(this).dialog("close");
+                                if (onCancel && $j.isFunction(onCancel)) {
+                                    onCancel();
+                                }
+                                $j(this).dialog("destroy");
+                            }
+                        }
+                    ]
+                });
+            }
+            
+            
+                    
+            /**
+             * Validations
+             **/
+            function loading(val)
+            {
+                if(val==true)
+                {
+                    $j("body").addClass("loadingCustom");
+                } else {
+                    $j("body").removeClass("loadingCustom");
+                }
+            }
+            
+            /**
+             * Validations
+             **/
+            function onDateChange( dateElement )
+            {
+                var pattern =/^([0-9]{2})\/([0-9]{2})\/([0-9]{4})$/;
+                if ( dateElement.value == null || dateElement.value == "" || !pattern.test(dateElement.value))
+                {
+                    $j(dateElement).parent().switchClass('valid','invalid' );
+                    showError('Please use DD/MM/YYYY','Invalid date format');
+                    return;
+                }
+                var dateArray = dateElement.value.split("/");
+                if ( isDate( dateArray[2] , dateArray[1], dateArray[0] ) == false  )
+                {
+                    $j(dateElement).parent().switchClass('valid','invalid' );
+                    showError( 'Please correct before submitting.' , 'Invalid date');
+                    return;
+                }   
+                var dateArray = dateElement.value.split("/");
+                if ( isDate( dateArray[2] , dateArray[1], dateArray[0] ) == false  )
+                {
+                    $j(dateElement).parent().switchClass('valid','invalid' );
+                    showError('Please correct before submitting.' , 'Invalid date');
+                    return;
+                }  
+                $j(dateElement).parent().switchClass('invalid','valid' );
+
+            }
+
+            function onCatChange( catElement )
+            {
+                if ( catElement.value == null || catElement.value == "" || catElement.value == '--None--')
+                {
+                    $j(catElement).parent().switchClass('valid','invalid' );
+                    showError('Please select a valid category.','Invalid Category');
+                    return;
+                }
+                $j(catElement).parent().switchClass('invalid','valid' );
+            }
+            
+            function isDate(y,m,d)
+            {
+                var date = new Date(y,(m-1),d);
+                var convertedDate = ""+ date.getFullYear() 
+                                      + ( date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1)
+                                      + ( date.getDate() < 10 ? '0' : '') + date.getDate();
+                var givenDate = "" + y + (m.length == 1 ? '0' + m : m) + (d.length == 1 ? '0' + d : d);
+            
+                return ( givenDate == convertedDate);
+            }
+        </script>
+
+</apex:page>

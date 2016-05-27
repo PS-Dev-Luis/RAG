@@ -1,0 +1,74 @@
+<apex:page action="{!pageLoad}" controller="ffdcWelcomeController">
+<style>
+.welcomeContent {
+    margin: 16px
+}
+
+.welcomeContent h3 {
+    font-size: 14px;
+    color: #0D72B9;
+    margin-top:20px;
+    display:block;
+}
+
+.welcomeContent p{margin-top:5px;line-height:140%;}
+
+.welcomeContent a{color:#0D72B9;}
+
+</style>
+<apex:form id="form">
+   <script> 
+        function closePopUp(id) 
+        {
+            window.close();
+            if (window.opener && !window.opener.closed) 
+            {
+                   // window.opener.top.location= "/" +id;
+            }
+        }
+   </script>
+    <apex:outputPanel id="mainPanel">
+       <apex:outputPanel id="waitingPanel" rendered="{!AND(NOT(isProcessComplete), NOT(isProcessFailed))}">
+            <div class="logo">
+                    <img src="{!LogoURL}"/>
+            </div>
+               <p><img style="vertical-align:middle;" src="/img/loading.gif" alt="" />&nbsp;&nbsp;Please wait...</p>
+               <apex:outputText value="The org is being prepared." id="counter2"/>
+                <apex:actionPoller action="{!checkProcesscacheManagementLoadTaxIsComplete}" rerender="mainPanel" interval="15"/>
+       </apex:outputPanel>
+       
+       <apex:outputPanel rendered="{!OR(isProcessComplete,isProcessFailed)}">
+            <div class="welcomeContent">
+                <div class="logo">
+                    <img src="{!LogoURL}"/>
+                </div>
+                
+                <apex:outputPanel layout="block" rendered="{!$Profile.Name=='System Administrator'}">
+                    <h3>IMPORTANT, PLEASE READ:</h3>
+                    <p>Welcome to your <a href="http://www.financialforce.com" target="_blank">FinancialForce.com</a> Accounting Free Trial.</p>
+                    <p>This Accounting Free Trial organization allows you to have hands-on exposure to <a href="http://www.financialforce.com" target="_blank">FinancialForce.com</a>, by working with  some of the day to day accounting functions of the solution . You must use the <strong>ACCOUNTING USER ID</strong> when working with this trial org.</p>
+                    <p>You are logged in as <strong>SYSTEM ADMINISTRATOR</strong>. Please <a target="_blank" href="http://www.financialforce.com/online-accounting-solutions/test-drive/info">download</a> the document "Getting the most from your free trial" from <a target="_blank" href="http://www.financialforce.com/online-accounting-solutions/test-drive/info">here</a>, and follow the instructions for setting up an <strong>ACCOUNTING USER</strong>.</p>  
+                    <p>The <strong>SYSTEM ADMINISTRATOR ID</strong> that you are currently using has limited capabilities and will not allow you to complete the exercises in this trial org, nor should you attempt to implement your company information into this trial org.</p>
+                    <p>If you experience any difficulties or have questions about specific functionality, please contact your account executive or if you do not have any account executive, please contact us at <a href="mailto:trialsupport@financialforce.com">trialsupport@financialforce.com</a></p>
+                </apex:outputPanel>
+                
+                <apex:outputPanel layout="block" rendered="{!$Profile.Name=='FinancialForce Accountant'}">
+                    <h3>IMPORTANT, PLEASE READ:</h3>
+                    <p>Welcome to your <a href="http://www.financialforce.com" target="_blank">FinancialForce.com</a> Accounting Free Trial.</p>
+                    <p>This Accounting Free Trial organization allows you to have hands-on exposure to <a href="http://www.financialforce.com" target="_blank">FinancialForce.com</a>, by working with  some of the day to day accounting functions of the solution. The <strong>ACCOUNTING USER ID</strong> that you are using does not allow you to perform any system administrator functions and you should not attempt to implement your company information into this trial org.</p>
+                    <p>Please <a target="_blank" href="http://www.financialforce.com/online-accounting-solutions/test-drive/info">download</a> the document "Getting the most from your free trial" from <a target="_blank" href="http://www.financialforce.com/online-accounting-solutions/test-drive/info">here</a>.  This documents includes the sample exercises to be used with this trial org. It is highly recommended that you follow the exercise in this guide document. If you experience any difficulties or have questions about specific functionality, please contact your account executive or if you do not have any account executive, please contact us at <a href="mailto:trialsupport@financialforce.com">trialsupport@financialforce.com</a></p>
+                </apex:outputPanel>
+                
+                <apex:outputPanel id="errorPanel" rendered="{!(isProcessFailed)}">
+                     <apex:outputText value="Sorry very much but the process Cache Objects Management has failed." id="counter3"/><br />
+                     <apex:outputText value="Please execute it manually if it was not done yet." id="counter4"/>
+                </apex:outputPanel>
+                
+            </div>
+        </apex:outputPanel>
+    </apex:outputPanel>
+    
+</apex:form>
+    
+
+</apex:page>
